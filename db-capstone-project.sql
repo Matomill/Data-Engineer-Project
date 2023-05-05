@@ -21,7 +21,7 @@ USE `LittleLemonDB` ;
 -- Table `LittleLemonDB`.`Bookings`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `LittleLemonDB`.`Bookings` (
-  `BookingID` INT NOT NULL,
+  `BookingID` INT AUTO_INCREMENT NOT NULL,
   `BookingDate` DATE NOT NULL,
   `TableNumber` INT NOT NULL,
   PRIMARY KEY (`BookingID`))
@@ -32,7 +32,7 @@ ENGINE = InnoDB;
 -- Table `LittleLemonDB`.`Customers`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `LittleLemonDB`.`Customers` (
-  `CustomerID` INT NOT NULL,
+  `CustomerID` INT AUTO_INCREMENT NOT NULL,
   `CustomerName` VARCHAR(45) NOT NULL,
   `Phone` VARCHAR(45) NOT NULL,
   `Email` VARCHAR(45) NOT NULL,
@@ -44,7 +44,7 @@ ENGINE = InnoDB;
 -- Table `LittleLemonDB`.`OrderDeliveryStatus`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `LittleLemonDB`.`OrderDeliveryStatus` (
-  `DeliveryID` INT NOT NULL,
+  `DeliveryID` INT AUTO_INCREMENT NOT NULL,
   `DeliveryDate` DATE NOT NULL,
   `DaliveryStatus` VARCHAR(45) NOT NULL,
   `OrderID` INT NOT NULL,
@@ -56,7 +56,7 @@ ENGINE = InnoDB;
 -- Table `LittleLemonDB`.`Items`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `LittleLemonDB`.`Items` (
-  `ItemID` INT NOT NULL,
+  `ItemID` INT AUTO_INCREMENT NOT NULL,
   `Drinks` VARCHAR(45) NOT NULL,
   `Starters` VARCHAR(45) NOT NULL,
   `PrincipalDishes` VARCHAR(45) NOT NULL,
@@ -69,7 +69,7 @@ ENGINE = InnoDB;
 -- Table `LittleLemonDB`.`Menu`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `LittleLemonDB`.`Menu` (
-  `MenuID` INT NOT NULL,
+  `MenuID` INT AUTO_INCREMENT NOT NULL,
   `MenuName` VARCHAR(45) NOT NULL,
   `Cuisine` VARCHAR(45) NOT NULL,
   `ItemID` INT NOT NULL,
@@ -87,7 +87,7 @@ ENGINE = InnoDB;
 -- Table `LittleLemonDB`.`Staff`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `LittleLemonDB`.`Staff` (
-  `EmployeeID` INT NOT NULL,
+  `EmployeeID` INT AUTO_INCREMENT NOT NULL,
   `EmployeeName` VARCHAR(95) NOT NULL,
   `PhoneNumber` VARCHAR(45) NOT NULL,
   `Email` VARCHAR(45) NOT NULL,
@@ -102,7 +102,7 @@ ENGINE = InnoDB;
 -- Table `LittleLemonDB`.`Orders`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `LittleLemonDB`.`Orders` (
-  `OrderID` INT NOT NULL,
+  `OrderID` INT AUTO_INCREMENT NOT NULL,
   `OrderDate` DATE NOT NULL,
   `Quantity` INT NOT NULL,
   `TotalCost` DECIMAL NOT NULL,
@@ -130,3 +130,73 @@ DEFAULT CHARACTER SET = armscii8;
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
+
+-- -------------------------------------------------------
+-- Create view - More than two orders.
+----------------------------------------------------------
+
+CREATE VIEW IF NOT EXISTS MoreThanTwoOrders AS
+SELECT MenuName
+FROM Menu
+WHERE MenuID = ANY (SELECT MenuID FROM Orders WHERE Quantity > 2); 
+
+-- -------------------------------------------------------
+-- Create view - Orders with a cost grather than $150
+----------------------------------------------------------
+
+CREATE VIEW IF NOT EXISTS OrdersWithCostGratherThan AS
+SELECT Customers.CustomerID, Customers.CustomerName, Orders.TotalCost, Menu.MenuName, Items.Courses
+FROM Customers
+INNER JOIN Orders
+ON Customers.CustomerID = Orders.CustomerID
+INNER JOIN Menu
+ON Orders.MenuID = Menu.MenuID
+INNER JOIN Items
+ON Menu.ItemID = Items.ItemID
+WHERE Orders.TotalCost > 150; 
+
+-- ------------------------------------------------------
+-- Create view - Orders with a quantity greater than 2
+---------------------------------------------------------
+
+CREATE VIEW IF NOT EXISTS OrdersView AS SELECT OrderID, Quantity, TotalCost FROM Orders WHERE Quantity > 2;
+
+-- ------------------------------------------------------
+-- Create Store Procedure to get the max quantity ordened
+---------------------------------------------------------
+
+CREATE PROCEDURE IF NOT EXISTS GetMaxQuantity()
+SELECT Quantity AS Max_Quantity_in_Order
+FROM Orders
+ORDER BY Quantity LIMIT 1;
+
+-- ------------------------------------------------------
+-- Prepared Statement to get a specific order detail
+---------------------------------------------------------
+
+PREPARE GetOrderDetail FROM '
+SELECT OrderID, Quantity, TotalCost
+FROM Orders
+WHERE OrderID = ?';
+
+-- SET @id = [some value];
+-- EXECUTE GetOrderDetails USING @id;
+
+-- ------------------------------------------------------
+-- Store Procedure to delete a record and show the confirmation
+---------------------------------------------------------
+
+DELETE PROCEDURE IF EXISTS CancelOrder;
+
+DELIMITER //
+
+CREATE PROCEDURE CancelOrder(INOUT cancelledOrder INT)
+BEGIN
+    DELETE FROM Orders WHERE OrderID = cancelledOrder;
+    SELECT CONCAT("Order", OrderID, "Is Cancelled")
+    INTO cancelledOrder
+    FROM Orders
+    WHERE OrderID = cancelledOrder;
+END//
+DELIMITER ; 
+             
