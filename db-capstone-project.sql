@@ -74,12 +74,9 @@ CREATE TABLE IF NOT EXISTS `LittleLemonDB`.`Menu` (
   `Cuisine` VARCHAR(45) NOT NULL,
   `ItemID` INT NOT NULL,
   PRIMARY KEY (`MenuID`),
-  INDEX `fk_item_id_idx` (`ItemID` ASC) VISIBLE,
   CONSTRAINT `fk_item_id`
-    FOREIGN KEY (`ItemID`)
-    REFERENCES `LittleLemonDB`.`Items` (`ItemID`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+  FOREIGN KEY (`ItemID`)
+  REFERENCES `LittleLemonDB`.`Items` (`ItemID`))
 ENGINE = InnoDB;
 
 
