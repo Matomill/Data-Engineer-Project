@@ -1,6 +1,6 @@
--- ----------------------------------------
--- To check Foreign Keys into the database
--------------------------------------------
+-- ------------------------------------------------
+-- To check foreign keys
+-- ------------------------------------------------
 
 SELECT RefCons.constraint_schema, RefCons.table_name, RefCons.referenced_table_name, RefCons.constraint_name, KeyCol.column_name
 FROM information_schema.referential_constraints RefCons
