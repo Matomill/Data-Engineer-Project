@@ -74,9 +74,12 @@ CREATE TABLE IF NOT EXISTS `LittleLemonDB`.`Menu` (
   `Cuisine` VARCHAR(45) NOT NULL,
   `ItemID` INT NOT NULL,
   PRIMARY KEY (`MenuID`),
+  INDEX `fk_item_id_idx` (`ItemID` ASC) VISIBLE,
   CONSTRAINT `fk_item_id`
-  FOREIGN KEY (`ItemID`)
-  REFERENCES `LittleLemonDB`.`Items` (`ItemID`))
+    FOREIGN KEY (`ItemID`)
+    REFERENCES `LittleLemonDB`.`Items` (`ItemID`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
@@ -103,14 +106,11 @@ CREATE TABLE IF NOT EXISTS `LittleLemonDB`.`Orders` (
   `OrderDate` DATE NOT NULL,
   `Quantity` INT NOT NULL,
   `TotalCost` DECIMAL NOT NULL,
-  `BookingID` INT NOT NULL,
   `CustomerID` INT NOT NULL,
   `DaliveryID` INT NOT NULL,
   `MenuID` INT NOT NULL,
   `EmployeeID` INT NOT NULL,
   PRIMARY KEY (`OrderID`),
-  FOREIGN KEY (`BookingID`)
-  REFERENCES `LittleLemonDB`.`Bookings` (`BookingID`),
   FOREIGN KEY (`CustomerID`)
   REFERENCES `LittleLemonDB`.`Customers` (`CustomerID`),
   FOREIGN KEY (`DaliveryID`)
@@ -130,7 +130,7 @@ SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
 -- -------------------------------------------------------
 -- Create view - More than two orders.
-----------------------------------------------------------
+-- -------------------------------------------------------
 
 CREATE VIEW IF NOT EXISTS MoreThanTwoOrders AS
 SELECT MenuName
@@ -139,7 +139,7 @@ WHERE MenuID = ANY (SELECT MenuID FROM Orders WHERE Quantity > 2);
 
 -- -------------------------------------------------------
 -- Create view - Orders with a cost grather than $150
-----------------------------------------------------------
+-- -------------------------------------------------------
 
 CREATE VIEW IF NOT EXISTS OrdersWithCostGratherThan AS
 SELECT Customers.CustomerID, Customers.CustomerName, Orders.TotalCost, Menu.MenuName, Items.Courses
@@ -154,13 +154,13 @@ WHERE Orders.TotalCost > 150;
 
 -- ------------------------------------------------------
 -- Create view - Orders with a quantity greater than 2
----------------------------------------------------------
+-- ------------------------------------------------------
 
 CREATE VIEW IF NOT EXISTS OrdersView AS SELECT OrderID, Quantity, TotalCost FROM Orders WHERE Quantity > 2;
 
 -- ------------------------------------------------------
 -- Create Store Procedure to get the max quantity ordened
----------------------------------------------------------
+-- ------------------------------------------------------
 
 CREATE PROCEDURE IF NOT EXISTS GetMaxQuantity()
 SELECT Quantity AS Max_Quantity_in_Order
@@ -169,7 +169,7 @@ ORDER BY Quantity LIMIT 1;
 
 -- ------------------------------------------------------
 -- Prepared Statement to get a specific order detail
----------------------------------------------------------
+-- ------------------------------------------------------
 
 PREPARE GetOrderDetail FROM '
 SELECT OrderID, Quantity, TotalCost
@@ -181,7 +181,7 @@ WHERE OrderID = ?';
 
 -- ------------------------------------------------------
 -- Store Procedure to delete a record and show the confirmation
----------------------------------------------------------
+-- ------------------------------------------------------
 
 DELETE PROCEDURE IF EXISTS CancelOrder;
 
@@ -190,10 +190,33 @@ DELIMITER //
 CREATE PROCEDURE CancelOrder(INOUT cancelledOrder INT)
 BEGIN
     DELETE FROM Orders WHERE OrderID = cancelledOrder;
-    SELECT CONCAT("Order", OrderID, "Is Cancelled")
+    SELECT CONCAT("Order", " ", OrderID, " ", "Is Cancelled")
     INTO cancelledOrder
     FROM Orders
     WHERE OrderID = cancelledOrder;
 END//
-DELIMITER ; 
-             
+DELIMITER ;
+
+-- ------------------------------------------------------
+-- Procedure to if a table is booking by date
+-- ------------------------------------------------------
+
+DROP PROCEDURE IF EXISTS AddValidBooking;
+
+DELIMITER //
+
+CREATE PROCEDURE AddValidBooking(IN bDate DATE, tNumber INT)
+BEGIN
+DECLARE total_row INT DEFAULT 0;
+START TRANSACTION;
+INSERT INTO Bookings (BookingDate, TableNumber, CustomerID) VALUES (BookingDate, tableNumber, 1);
+SET total_row = (SELECT COUNT(BookingID) FROM Bookings WHERE BookingDate = bDate AND TableNumber = tNumber);
+IF total_row = 2 THEN
+	ROLLBACK;
+	SELECT CONCAT("Table ", tNumber, " is already booked - booking cancelled") FROM Bookings AS BookingStatus;
+ELSE    
+	COMMIT;
+END IF;
+END //
+
+DELIMITER ;    
