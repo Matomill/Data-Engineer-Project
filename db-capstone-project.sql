@@ -219,4 +219,55 @@ ELSE
 END IF;
 END //
 
-DELIMITER ;    
+DELIMITER ;
+
+-- --------------------------------------------------------
+-- Procedure to add a record into Bookings table
+-- --------------------------------------------------------
+
+DROP PROCEDURE IF EXISTS AddBooking;
+
+DELIMITER //
+
+CREATE PROCEDURE AddBooking(IN Bid INT, IN Tnumber INT, IN Cid INT, IN Bdate DATE)
+BEGIN
+INSERT INTO Bookings (BookingID, TableNumber, CustomerID, BookingDate) VALUES (Bid, Tnumber, Cid, Bdate);
+SELECT CONCAT("New booking added") AS Confirmation;
+END //
+
+DELIMITER ;  
+
+-- --------------------------------------------------------
+-- Procedure to update the date of a specific booking
+-- --------------------------------------------------------
+
+DROP PROCEDURE IF EXISTS UpdateBooking;
+
+DELIMITER //
+
+CREATE PROCEDURE UpdateBooking(IN Bid INT, IN Bdate DATE)
+BEGIN
+UPDATE Bookings
+SET BookingID = Bid, BookingDate = Bdate
+WHERE BookingID = Bid;
+SELECT CONCAT("Booking ", Bid, " updated") AS Confirmation;
+END //
+
+DELIMITER ;   
+
+-- --------------------------------------------------------
+-- Procedure to cancel a booking
+-- --------------------------------------------------------
+
+DROP PROCEDURE IF EXISTS CancelBooking;
+
+DELIMITER //
+
+CREATE PROCEDURE CancelBooking(IN Bid INT)
+BEGIN
+DELETE FROM Bookings
+WHERE BookingID = Bid;
+SELECT CONCAT("Booking ", Bid, " cancelled") AS Confirmation;
+END //
+
+DELIMITER ;   
