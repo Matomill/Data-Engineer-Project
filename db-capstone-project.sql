@@ -128,146 +128,17 @@ SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
--- -------------------------------------------------------
--- Create view - More than two orders.
--- -------------------------------------------------------
 
-CREATE VIEW IF NOT EXISTS MoreThanTwoOrders AS
-SELECT MenuName
-FROM Menu
-WHERE MenuID = ANY (SELECT MenuID FROM Orders WHERE Quantity > 2); 
 
--- -------------------------------------------------------
--- Create view - Orders with a cost grather than $150
--- -------------------------------------------------------
 
-CREATE VIEW IF NOT EXISTS OrdersWithCostGratherThan AS
-SELECT Customers.CustomerID, Customers.CustomerName, Orders.TotalCost, Menu.MenuName, Items.Courses
-FROM Customers
-INNER JOIN Orders
-ON Customers.CustomerID = Orders.CustomerID
-INNER JOIN Menu
-ON Orders.MenuID = Menu.MenuID
-INNER JOIN Items
-ON Menu.ItemID = Items.ItemID
-WHERE Orders.TotalCost > 150; 
 
--- ------------------------------------------------------
--- Create view - Orders with a quantity greater than 2
--- ------------------------------------------------------
 
-CREATE VIEW IF NOT EXISTS OrdersView AS SELECT OrderID, Quantity, TotalCost FROM Orders WHERE Quantity > 2;
 
--- ------------------------------------------------------
--- Create Store Procedure to get the max quantity ordened
--- ------------------------------------------------------
 
-CREATE PROCEDURE IF NOT EXISTS GetMaxQuantity()
-SELECT Quantity AS Max_Quantity_in_Order
-FROM Orders
-ORDER BY Quantity LIMIT 1;
 
--- ------------------------------------------------------
--- Prepared Statement to get a specific order detail
--- ------------------------------------------------------
 
-PREPARE GetOrderDetail FROM '
-SELECT OrderID, Quantity, TotalCost
-FROM Orders
-WHERE OrderID = ?';
 
--- SET @id = [some value];
--- EXECUTE GetOrderDetails USING @id;
 
--- ------------------------------------------------------
--- Store Procedure to delete a record and show the confirmation
--- ------------------------------------------------------
 
-DELETE PROCEDURE IF EXISTS CancelOrder;
 
-DELIMITER //
 
-CREATE PROCEDURE CancelOrder(INOUT cancelledOrder INT)
-BEGIN
-    DELETE FROM Orders WHERE OrderID = cancelledOrder;
-    SELECT CONCAT("Order", " ", OrderID, " ", "Is Cancelled")
-    INTO cancelledOrder
-    FROM Orders
-    WHERE OrderID = cancelledOrder;
-END//
-DELIMITER ;
-
--- ------------------------------------------------------
--- Procedure to if a table is booking by date
--- ------------------------------------------------------
-
-DROP PROCEDURE IF EXISTS AddValidBooking;
-
-DELIMITER //
-
-CREATE PROCEDURE AddValidBooking(IN bDate DATE, tNumber INT)
-BEGIN
-DECLARE total_row INT DEFAULT 0;
-START TRANSACTION;
-INSERT INTO Bookings (BookingDate, TableNumber, CustomerID) VALUES (BookingDate, tableNumber, 1);
-SET total_row = (SELECT COUNT(BookingID) FROM Bookings WHERE BookingDate = bDate AND TableNumber = tNumber);
-IF total_row = 2 THEN
-	ROLLBACK;
-	SELECT CONCAT("Table ", tNumber, " is already booked - booking cancelled") FROM Bookings AS BookingStatus;
-ELSE    
-	COMMIT;
-END IF;
-END //
-
-DELIMITER ;
-
--- --------------------------------------------------------
--- Procedure to add a record into Bookings table
--- --------------------------------------------------------
-
-DROP PROCEDURE IF EXISTS AddBooking;
-
-DELIMITER //
-
-CREATE PROCEDURE AddBooking(IN Bid INT, IN Tnumber INT, IN Cid INT, IN Bdate DATE)
-BEGIN
-INSERT INTO Bookings (BookingID, TableNumber, CustomerID, BookingDate) VALUES (Bid, Tnumber, Cid, Bdate);
-SELECT CONCAT("New booking added") AS Confirmation;
-END //
-
-DELIMITER ;  
-
--- --------------------------------------------------------
--- Procedure to update the date of a specific booking
--- --------------------------------------------------------
-
-DROP PROCEDURE IF EXISTS UpdateBooking;
-
-DELIMITER //
-
-CREATE PROCEDURE UpdateBooking(IN Bid INT, IN Bdate DATE)
-BEGIN
-UPDATE Bookings
-SET BookingID = Bid, BookingDate = Bdate
-WHERE BookingID = Bid;
-SELECT CONCAT("Booking ", Bid, " updated") AS Confirmation;
-END //
-
-DELIMITER ;   
-
--- --------------------------------------------------------
--- Procedure to cancel a booking
--- --------------------------------------------------------
-
-DROP PROCEDURE IF EXISTS CancelBooking;
-
-DELIMITER //
-
-CREATE PROCEDURE CancelBooking(IN Bid INT)
-BEGIN
-DELETE FROM Bookings
-WHERE BookingID = Bid;
-SELECT CONCAT("Booking ", Bid, " cancelled") AS Confirmation;
-END //
-
-DELIMITER ;   
